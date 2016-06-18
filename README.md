@@ -12,5 +12,4 @@ Features Nominal version 0.0.07:
 +Chunk System
 +OBJ loader
 +Block picking and despawning
-----------------------------------------------------------
 -WIP light, textures and models
