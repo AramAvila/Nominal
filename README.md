@@ -11,6 +11,6 @@ Features Nominal version 0.0.07:
 +Antialiasing
 +Chunk System
 +OBJ loader
-+Block picking and destroy
++Block picking and despawning
 ----------------------------------------------------------
 -WIP light, textures and models
