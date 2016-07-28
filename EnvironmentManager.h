@@ -12,7 +12,9 @@
 #include "textures\SOIL.h"
 #include "gl\glm\vec3.hpp"
 #include "ChunkPack.h"
-#include "entities\Entity.h"
+
+#include "entities\EntityContainer.h"
+
 
 class EnvironmentManager
 {
@@ -20,7 +22,7 @@ public:
 	EnvironmentManager();
 	~EnvironmentManager();
 	
-	void processObjectSpawn(float x, float y, float z, Entity obj);
+	void processObjectSpawn(float x, float y, float z, EntityContainer::ENTITY_LIST entity);
 	void deleteModel(float x, float y, float z);
 
 
@@ -39,7 +41,7 @@ public:
 	//void moveEntities();
 
 private:	
-	void spawnCube(glm::vec3 absPosition, glm::vec3 relPosition, Entity* closestBlock, Chunk* closestChunk, ChunkPack* closestPack, Entity obj);
-	//void spawnGenerator(glm::vec3 absPosition, glm::vec3 relPosition, Object* closestBlock, Chunk* closestChunk, ChunkPack* closestPack, Object obj);
-
+	void spawnCube(glm::vec3 absPosition, glm::vec3 relPosition, Entity* closestBlock, Chunk* closestChunk, ChunkPack* closestPack, Block obj);
+	void spawnGenerator(glm::vec3 absPosition, glm::vec3 relPosition, Entity* closestBlock, Chunk* closestChunk, ChunkPack* closestPack, Generator obj);
+	void spawnWire(glm::vec3 absPosition, glm::vec3 relPosition, Entity* closestBlock, Chunk* closestChunk, ChunkPack* closestPack, Wire obj);
 };

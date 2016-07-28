@@ -2,8 +2,10 @@
 
 extern Renderer renderer;
 extern std::vector<ChunkPack> chunkPacks;
-extern std::vector<Entity> entities;
+extern EntityContainer entityContainer;
 extern glm::vec3 closestPoint; //This is the last closest point found, used in the renderer class to debug
+
+extern Camera camera;
 
 EnvironmentManager::EnvironmentManager()
 {
@@ -13,7 +15,7 @@ EnvironmentManager::~EnvironmentManager()
 {
 }
 
-void EnvironmentManager::processObjectSpawn(float x, float y, float z, Entity obj)
+void EnvironmentManager::processObjectSpawn(float x, float y, float z, EntityContainer::ENTITY_LIST entity)
 {
 	/* To know if there is an existent chunk in witch the object should be appended we will find the position of the new block in each chunk's relative coordinate system
 	*  With that position we will iterate through all existent blocks in chunks of every chunkPack to find the closest one.
@@ -39,7 +41,7 @@ void EnvironmentManager::processObjectSpawn(float x, float y, float z, Entity ob
 			if (MathHelper::getVectorLength((glm::vec3)chunk->getChunkCenter() - relPosition) < sqrt(3 * pow(Configuration::CHUNK_SIZE / 2, 2)) + Configuration::MAXIMUM_JOIN_RANGE) {
 				//if we entered this loop is becouse the chunk is close enough to the block creation so that it may contain a block to join the new one
 				//iterate through all of the blocks to find the closest one
-				for (std::vector<Entity>::iterator obj = chunk->objectList.begin(); obj != chunk->objectList.end(); obj++)
+				for (std::vector<Block>::iterator obj = chunk->blockList.begin(); obj != chunk->blockList.end(); obj++)
 				{
 					glm::vec3 posDiference = relPosition - (glm::vec3)obj->relPosition;
 					float newDist = MathHelper::getVectorLength(posDiference);
@@ -63,15 +65,65 @@ void EnvironmentManager::processObjectSpawn(float x, float y, float z, Entity ob
 		closestPoint = (glm::vec3)closestBlock->relPosition + closestPack->absPosition;
 	}
 
-	if (obj.type == Configuration::ENTITIES_TYPES::block) { //if the first char is a c, it means we are spawning a cube.
-		spawnCube(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, obj);
-	}
-	else if (obj.type == Configuration::ENTITIES_TYPES::generator) {
-		//spawnGenerator(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, obj);
-		std::cout << "we should spawn a generator" << std::endl;
+	//auto obj = entities.find(id)->second;
+	switch (entity)
+	{
+		case EntityContainer::STARTENUM:
+			break;
+		case EntityContainer::RUSTED_BLOCK:
+		{
+			spawnCube(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, entityContainer.rustedBlock);
+			break;
+		}
+
+		case EntityContainer::FLOOR_BLOCK:
+		{
+			spawnCube(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, entityContainer.floorBlock);
+			break;
+		}
+
+		case EntityContainer::WALL_BLOCK:
+		{
+			spawnCube(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, entityContainer.wallBlock);
+			break;
+		}
+
+		case EntityContainer::GENERATOR:
+		{
+			spawnGenerator(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, entityContainer.generator);
+			break;
+		}
+
+		case EntityContainer::WIRE:
+		{
+			spawnWire(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, entityContainer.wire);
+			break;
+		}
+
+		case EntityContainer::ENDENUM:
+			break;
+		default:
+			break;
 	}
 
-	
+	/*
+	switch (entities.find(id)->second.type) {
+
+		case Configuration::ENTITIES_TYPES::block:
+		{
+			//Block& obj = dynamic_cast<Block&>(entities.find(id)->second);
+			spawnCube(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, obj);
+			break;
+		}
+
+		case Configuration::ENTITIES_TYPES::generator:
+		{
+			Generator& obj = dynamic_cast<Generator&>(entities.find(id)->second);
+			spawnGenerator(glm::vec3(x, y, z), closestRelPosition, closestBlock, closestChunk, closestPack, obj);
+			break;
+		}
+
+	}*/
 }
 
 void EnvironmentManager::deleteModel(float x, float y, float z) {
@@ -82,7 +134,7 @@ void EnvironmentManager::deleteModel(float x, float y, float z) {
 	*/
 
 	float dist = Configuration::MAXIMUM_JOIN_RANGE * 2;//just to make sure the condition will be valid
-	std::vector<Entity>::iterator closestBlock;
+	std::vector<Block>::iterator closestBlock;
 	std::vector<Chunk>::iterator closestChunk;
 	std::vector<ChunkPack>::iterator closestPack;
 
@@ -99,7 +151,7 @@ void EnvironmentManager::deleteModel(float x, float y, float z) {
 			if (MathHelper::getVectorLength((glm::vec3)chunk->getChunkCenter() - relPosition) < sqrt(3 * pow(Configuration::CHUNK_SIZE / 2, 2)) + Configuration::MAXIMUM_JOIN_RANGE) {
 				//if we entered this loop is becouse the chunk is close enough to the block creation so that it may contain a block to join the new one
 				//iterate through all of the blocks to find the closest one
-				for (std::vector<Entity>::iterator obj = chunk->objectList.begin(); obj != chunk->objectList.end(); obj++)
+				for (std::vector<Block>::iterator obj = chunk->blockList.begin(); obj != chunk->blockList.end(); obj++)
 				{
 					glm::vec3 posDiference = relPosition - (glm::vec3)obj->relPosition;
 					float newDist = MathHelper::getVectorLength(posDiference);
@@ -120,9 +172,9 @@ void EnvironmentManager::deleteModel(float x, float y, float z) {
 	}
 
 	if (found) {	//if there is a block to delete, we will delete it
-		closestChunk->objectList.erase(closestBlock);
+		closestChunk->blockList.erase(closestBlock);
 
-		if (closestChunk->objectList.size() == 0) { //if it was the only block in the chunk, the chunk will be deleted
+		if (closestChunk->blockList.size() == 0) { //if it was the only block in the chunk, the chunk will be deleted
 
 			closestPack->chunkList.erase(closestChunk);
 
@@ -437,7 +489,7 @@ void EnvironmentManager::setUpSkyBox() {
 /// <param name="closestChunk">The closest chunk.</param>
 /// <param name="closestPack">The closest pack.</param>
 /// <param name="id">The identifier of the cube.</param>
-void EnvironmentManager::spawnCube(glm::vec3 absPosition, glm::vec3 relPosition, Entity* closestBlock, Chunk* closestChunk, ChunkPack* closestPack, Entity obj)
+void EnvironmentManager::spawnCube(glm::vec3 absPosition, glm::vec3 relPosition, Entity* closestBlock, Chunk* closestChunk, ChunkPack* closestPack, Block obj)
 {
 
 	//if dist is less than Configuration::MAXIMUM_JOIN_RANGE * 2, it means that a close enough block has been found.
@@ -468,7 +520,7 @@ void EnvironmentManager::spawnCube(glm::vec3 absPosition, glm::vec3 relPosition,
 
 		if (found) {
 			obj.relPosition = newBlockRelPos;
-			chunk->objectList.push_back(obj);
+			chunk->blockList.push_back(obj);
 			chunk->updateChunkVAO();
 		}
 		else {
@@ -476,7 +528,7 @@ void EnvironmentManager::spawnCube(glm::vec3 absPosition, glm::vec3 relPosition,
 			obj.relPosition = closestBlock->relPosition + offset;
 
 			Chunk newChunk(newBlockChunk.x, newBlockChunk.y, newBlockChunk.z);
-			newChunk.objectList.push_back(obj);
+			newChunk.blockList.push_back(obj);
 			newChunk.updateChunkVAO();
 
 			closestPack->chunkList.push_back(newChunk);
@@ -484,16 +536,198 @@ void EnvironmentManager::spawnCube(glm::vec3 absPosition, glm::vec3 relPosition,
 	}
 	else {//there is no chunk close enough so a new chunk pack will be created
 		ChunkPack newPack;
+
+		newPack.relativeAxisX = camera.Right;
+		newPack.relativeAxisY = camera.Up;
+		newPack.relativeAxisZ = -camera.Front;
+		newPack.pitch = camera.Pitch;
+		newPack.yaw = camera.Yaw;
+		newPack.roll = camera.Roll;
+
 		Chunk newChunk(0, 0, 0);;
 
 		newPack.absPosition = glm::vec3(absPosition);
 		obj.relPosition = glm::vec3(0, 0, 0);
 
-		newChunk.objectList.push_back(obj);
+		newChunk.blockList.push_back(obj);
 		newChunk.updateChunkVAO();
 
 		newPack.chunkList.push_back(newChunk);
 		chunkPacks.push_back(newPack);
 	}
 
+}
+
+
+/// <summary>
+/// Spawns a generator
+/// </summary>
+/// <param name="absPosition">The absolute position of the cube: needed if we have to spawn a new chunkPack.</param>
+/// <param name="relPosition">The relative position: if the cube has to join another chunkpack.</param>
+/// <param name="closestBlock">The closest block.</param>
+/// <param name="closestChunk">The closest chunk.</param>
+/// <param name="closestPack">The closest pack.</param>
+/// <param name="obj">The object "generator" to spawn.</param>
+void EnvironmentManager::spawnGenerator(glm::vec3 absPosition, glm::vec3 relPosition, Entity* closestBlock, Chunk* closestChunk, ChunkPack* closestPack, Generator obj) {
+
+	if (closestBlock != NULL) {
+
+		glm::ivec3 offset = MathHelper::getVectorDirection((glm::vec3)relPosition - glm::vec3(closestBlock->relPosition));
+
+		glm::ivec3 newBlockRelPos = closestBlock->relPosition + offset;
+
+		//checking colision box
+		bool clear = true;
+
+		//snapping camera axis to chunk's axis
+		glm::vec3 collisionXaxis = MathHelper::getVectorDirectionCustomAxis(camera.Front, closestPack->relativeAxisX, closestPack->relativeAxisY, closestPack->relativeAxisZ);
+		glm::vec3 collisionYaxis = MathHelper::getVectorDirectionCustomAxis(camera.Up, closestPack->relativeAxisX, closestPack->relativeAxisY, closestPack->relativeAxisZ);
+		glm::vec3 collisionZaxis = MathHelper::getVectorDirectionCustomAxis(camera.Right, closestPack->relativeAxisX, closestPack->relativeAxisY, closestPack->relativeAxisZ);
+
+		obj.orientationX = collisionZaxis;
+		obj.orientationY = collisionYaxis;
+		obj.orientationZ = -collisionXaxis;
+
+		for (int cX = 0; cX <= obj.collisionBox.x; cX++)
+		{
+			for (int cY = 0; cY <= obj.collisionBox.y; cY++)
+			{
+				for (int cZ = 0; cZ <= obj.collisionBox.z; cZ++)
+				{
+					glm::ivec3 position = collisionXaxis * (float)cX + collisionYaxis * (float)cY + collisionZaxis * (float)cZ + (glm::vec3)newBlockRelPos;
+					std::vector<Chunk>::iterator chunkIt = closestPack->chunkList.begin();
+					while (clear && chunkIt != closestPack->chunkList.end()) {
+						std::vector<Block>::iterator entIt = chunkIt->blockList.begin();
+
+						while (clear && entIt != chunkIt->blockList.end()) {
+
+							if (entIt->relPosition == position) {
+								clear = false;
+							}
+							entIt++;
+						}
+						chunkIt++;
+					}
+				}
+			}
+		}
+
+		if (clear) {
+
+			glm::vec3 a = (glm::vec3)newBlockRelPos / (float)Configuration::CHUNK_SIZE; //var a only used in the following 4 lines
+			a.x = a.x < 0 ? a.x - 1 : a.x;
+			a.y = a.y < 0 ? a.y - 1 : a.y; //first chunk in xPos will be 0,0,0 ----- first chunk in xNeg will be -1,0,0
+			a.z = a.z < 0 ? a.z - 1 : a.z;
+			glm::ivec3 newBlockChunk = (glm::ivec3)a;  //casting to integer will truncate the float values  12.35->12 , -15.247->-15
+
+			std::vector<Chunk>::iterator chunk = closestPack->chunkList.begin();
+
+			bool found = false;
+
+			while (!found && chunk != closestPack->chunkList.end()) { //iterate through all chunks in the chunk pack to see if the one the block should be on already exists
+				if (chunk->relativePosition == newBlockChunk) {
+					found = true;
+				}
+				else {
+					chunk++;
+				}
+			}
+
+			if (found) {
+				obj.relPosition = newBlockRelPos;
+				obj.setUp();
+				chunk->generatorList.push_back(obj);
+				chunk->updateChunkVAO();
+			}
+			else {
+				obj.relPosition = closestBlock->relPosition + offset;
+				obj.setUp();
+
+				Chunk newChunk(newBlockChunk.x, newBlockChunk.y, newBlockChunk.z);
+				newChunk.generatorList.push_back(obj);
+				newChunk.updateChunkVAO();
+
+				closestPack->chunkList.push_back(newChunk);
+			}
+		}
+	}
+}
+
+void EnvironmentManager::spawnWire(glm::vec3 absPosition, glm::vec3 relPosition, Entity * closestBlock, Chunk * closestChunk, ChunkPack * closestPack, Wire obj)
+{
+	//if dist is less than Configuration::MAXIMUM_JOIN_RANGE * 2, it means that a close enough block has been found.
+	if (closestBlock != NULL) {
+
+		glm::ivec3 offset = MathHelper::getVectorDirection((glm::vec3)relPosition - glm::vec3(closestBlock->relPosition));
+
+		glm::ivec3 newBlockRelPos = closestBlock->relPosition + offset;
+
+		glm::vec3 a = (glm::vec3)newBlockRelPos / (float)Configuration::CHUNK_SIZE; //var a only used in the following 4 lines
+		a.x = a.x < 0 ? a.x - 1 : a.x;
+		a.y = a.y < 0 ? a.y - 1 : a.y; //first chunk in xPos will be 0,0,0 ----- first chunk in xNeg will be -1,0,0
+		a.z = a.z < 0 ? a.z - 1 : a.z;
+		glm::ivec3 newBlockChunk = (glm::ivec3)a;  //casting to integer will truncate the float values  12.35->12 , -15.247->-15
+
+		std::vector<Chunk>::iterator chunk = closestPack->chunkList.begin();
+
+		bool found = false;
+
+		while (!found && chunk != closestPack->chunkList.end()) { //iterate through all chunks in the chunk pack to see if the one the block should be on already exists
+			if (chunk->relativePosition == newBlockChunk) {
+				found = true;
+			}
+			else {
+				chunk++;
+			}
+		}
+
+		if (found) {
+			obj.relPosition = newBlockRelPos;
+			chunk->wireList.push_back(obj);
+			chunk->updateChunkVAO();
+		}
+		else {
+
+			obj.relPosition = closestBlock->relPosition + offset;
+
+			Chunk newChunk(newBlockChunk.x, newBlockChunk.y, newBlockChunk.z);
+			newChunk.wireList.push_back(obj);
+			newChunk.updateChunkVAO();
+
+			closestPack->chunkList.push_back(newChunk);
+		}
+
+		found = false;
+
+		std::vector<Connection*> connectionsToJoin;
+
+		for each (Connection connect in closestPack->connectionList)
+		{
+			if (connect.type == obj.type) {
+				bool joined = false;
+				std::vector<glm::vec3>::iterator point = connect.wirePoints.begin();
+
+				while (!joined && point != connect.wirePoints.end()) {
+					if (MathHelper::getVectorLength(*point - (glm::vec3)obj.relPosition) < 1.5) {
+						joined = true;
+						connectionsToJoin.push_back(&connect);
+					}
+				}
+			}
+		}
+
+		switch (connectionsToJoin.size()) {
+		case 0: {
+			Connection newConn;
+			newConn.wirePoints.push_back(obj.relPosition);
+			closestPack->connectionList.push_back(newConn);
+		}
+		case 1: {
+			connectionsToJoin.at(0)->wirePoints.push_back(obj.relPosition);
+		}
+
+
+		}
+
+	}
 }

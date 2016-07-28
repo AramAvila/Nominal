@@ -106,6 +106,19 @@ float MathHelper::angleBetween(glm::vec3 a, glm::vec3 b) {
 	return acos(glm::dot(nA, nB));
 }
 
+float MathHelper::angleBetweenNormal(glm::vec3 a, glm::vec3 b, glm::vec3 n) {
+	a = glm::normalize(a);
+	b = glm::normalize(b);
+	n = glm::normalize(n);
+
+	float dot = a.x*b.x + a.y*b.y + a.z*b.z;
+	float det = a.x*b.y*n.z + b.x*n.y*a.z + n.x*a.y*b.z - a.z*b.y*n.x - b.z*n.y*a.x - n.z*a.y*b.x;
+	float angle = atan2(det, dot);
+	return angle;
+}
+
+
+
 /// <summary>
 /// Returns the quadrant that a vector is pointing to
 /// </summary>
@@ -238,4 +251,45 @@ glm::vec3 MathHelper::changeReferenceSystem(glm::vec3 point, glm::vec3 newOrigin
 	newPoint.x = (-newPoint.y* newY.x - newPoint.z* newZ.x + point.x) / newX.x;
 
 	return newPoint;
+}
+
+glm::vec3 MathHelper::rotatePointArroundAxis(glm::vec3 point, glm::vec3 axis, double angle) {
+
+	float v1 = point.x * axis.x + point.y * axis.y + point.z * axis.z;
+	double oneMinusCos = 1 - cos(angle);
+	double axisModule = sqrt(axis.x * axis.x + axis.y * axis.y + axis.z * axis.z);
+	float axisM = axis.x * axis.x + axis.y * axis.y + axis.z * axis.z;
+
+	glm::vec3 rotatedPoint;
+
+	rotatedPoint.x = (float)((axis.x * v1 * oneMinusCos + axisM * point.x * cos(angle) + axisModule * (-axis.z * point.y + axis.y * point.z) * sin(angle)) / axisM);
+	rotatedPoint.y = (float)((axis.y * v1 * oneMinusCos + axisM * point.y * cos(angle) + axisModule * (axis.z * point.x - axis.x * point.z) * sin(angle)) / axisM);
+	rotatedPoint.z = (float)((axis.z * v1 * oneMinusCos + axisM * point.z * cos(angle) + axisModule * (-axis.y * point.x + axis.x * point.y) * sin(angle)) / axisM);
+
+	return rotatedPoint;
+}
+
+std::pair<double, double> MathHelper::getAnglesFromAim(glm::vec3 viewAxis) {
+
+	glm::normalize(viewAxis);
+
+	double pitch = -atan2(viewAxis.y, sqrt(viewAxis.x * viewAxis.x + viewAxis.z * viewAxis.z));
+	double yaw = atan2(viewAxis.z, viewAxis.x) + PI;
+
+	std::pair<double, double> returnValues;
+	returnValues.first = pitch;
+	returnValues.second = yaw - PI / 2;
+	return returnValues;
+}
+
+//https://www.maplesoft.com/support/help/Maple/view.aspx?path=MathApps/ProjectionOfVectorOntoPlane
+double MathHelper::findRoll(glm::vec3 axisUp, glm::vec3 axisRight) {
+
+	double roll = MathHelper::angleBetween(axisRight, glm::vec3(-axisUp.z, 0, axisUp.x));
+
+	if (axisRight.y < 0) {
+		roll = 2 * PI - roll;
+	}
+	return roll;
+
 }

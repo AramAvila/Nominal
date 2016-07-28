@@ -20,14 +20,18 @@ enum Camera_Movement {
 	LEFT,
 	RIGHT,
 	UP,
-	DOWN
+	DOWN,
+	ROLL_LEFT,
+	ROLL_RIGHT
 };
 
 // Default camera values
-const GLfloat YAW = -90.0f;
+const GLfloat YAW = 0.0f;
 const GLfloat PITCH = 0.0f;
+const GLfloat ROLL = 0.0f;
+
 const GLfloat SPEED = 3.0f;
-const GLfloat SENSITIVTY = 0.25f;
+const GLfloat SENSITIVTY = 0.008f;
 const GLfloat ZOOM = 45.0f;
 
 
@@ -37,15 +41,17 @@ class Camera
 public:
 	// Camera Attributes
 	glm::vec3 Position;
-	glm::vec3 Front;
-	glm::vec3 Up;
-	glm::vec3 Right;
-	glm::vec3 WorldUp;
+	glm::vec3 Front =	glm::vec3(1, 0, 0);
+	glm::vec3 Up =		glm::vec3(0, 1, 0);
+	glm::vec3 Right =	glm::vec3(0, 0, 1);
+	glm::vec3 WorldUp = glm::vec3(0, 1, 0);
 
 	glm::vec3 SpawnPosition;
 	// Eular Angles
 	GLfloat Yaw;
 	GLfloat Pitch;
+	GLfloat Roll;
+
 	// Camera options
 	GLfloat MovementSpeed;
 	GLfloat MouseSensitivity;
@@ -54,10 +60,12 @@ public:
 	GLfloat spawnDistance = 3.0f;
 	GLfloat PlayerHeight = 4.0f;
 
+	glm::vec3 lastTickMove = glm::vec3(0, 0, 0);
+
 	// Constructor with vectors
-	Camera(glm::vec3 absPosition = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), GLfloat yaw = YAW, GLfloat pitch = PITCH);
+	Camera(glm::vec3 absPosition = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), GLfloat yaw = YAW, GLfloat pitch = PITCH, GLfloat roll = ROLL);
 	// Constructor with scalar values
-	Camera(GLfloat posX, GLfloat posY, GLfloat posZ, GLfloat upX, GLfloat upY, GLfloat upZ, GLfloat yaw, GLfloat pitch);
+	Camera(GLfloat posX, GLfloat posY, GLfloat posZ, GLfloat upX, GLfloat upY, GLfloat upZ, GLfloat yaw, GLfloat pitch, GLfloat roll);
 
 	// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
 	glm::mat4 GetViewMatrix();

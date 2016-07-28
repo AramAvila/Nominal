@@ -85,145 +85,182 @@ glm::ivec3 Chunk::getChunkCenter()
 
 
 struct vertex {
-	GLfloat positions[3];
-	GLfloat normals[3];
-	GLfloat textures[2];
+	glm::vec3 position;
+	glm::vec3 normal;
+	glm::vec2 texture;
 };
 
-struct Face { //1-2-3, 2-1-4
-	GLfloat v1[8];
-	GLfloat v2[8];
-	GLfloat v3[8];
-	GLfloat v4[8];
+struct face {
+	vertex v1;
+	vertex v2;
+	vertex v3;
+
+	bool v1r = false;
+	bool v2r = false;
+	bool v3r = false;
 };
 
 void Chunk::updateChunkVAO() {
 
-	GLfloat chunkVertices[116736]; //the maximum amount of vertices a chunk can have is 116736 -> 8 * 8 * 8 * 228
 	GLfloat x, y, z;
-	GLint vertexCount = 0;
+	std::vector<face> faces;
 
-	//std::vector<Face> faces;
-
-	int c = 0;
-	for (int i = 0; i < this->objectList.size(); i++)
+	for (int i = 0; i < this->blockList.size(); i++)
 	{
-		x = this->objectList[i].relPosition.x;
-		y = this->objectList[i].relPosition.y;
-		z = this->objectList[i].relPosition.z;
+		x = this->blockList[i].relPosition.x;
+		y = this->blockList[i].relPosition.y;
+		z = this->blockList[i].relPosition.z;
 
-		for (int a = 0; a < objectList[i].body.vertexArray.size(); a = a + 8)
+		for (int a = 0; a < blockList[i].body.vertexArray.size(); a += 24)
 		{
-			chunkVertices[c++] = objectList[i].body.vertexArray[a] + x;  //Vertex
-			chunkVertices[c++] = objectList[i].body.vertexArray[a + 1] + y;
-			chunkVertices[c++] = objectList[i].body.vertexArray[a + 2] + z;
+			vertex v1, v2, v3;
 
-			chunkVertices[c++] = objectList[i].body.vertexArray[a + 3];  //Normals
-			chunkVertices[c++] = objectList[i].body.vertexArray[a + 4];
-			chunkVertices[c++] = objectList[i].body.vertexArray[a + 5];
+			v1.position = glm::vec3(blockList[i].body.vertexArray[a] + x, blockList[i].body.vertexArray[a + 1] + y, blockList[i].body.vertexArray[a + 2] + z);
+			v1.normal = glm::vec3(blockList[i].body.vertexArray[a + 3], blockList[i].body.vertexArray[a + 4], blockList[i].body.vertexArray[a + 5]);
+			v1.texture = glm::vec2(blockList[i].body.vertexArray[a + 6], blockList[i].body.vertexArray[a + 7]);
 
-			chunkVertices[c++] = objectList[i].body.vertexArray[a + 6];  //Textures
-			chunkVertices[c++] = objectList[i].body.vertexArray[a + 7];
+			v2.position = glm::vec3(blockList[i].body.vertexArray[a + 8] + x, blockList[i].body.vertexArray[a + 9] + y, blockList[i].body.vertexArray[a + 10] + z);
+			v2.normal = glm::vec3(blockList[i].body.vertexArray[a + 11], blockList[i].body.vertexArray[a + 12], blockList[i].body.vertexArray[a + 13]);
+			v2.texture = glm::vec2(blockList[i].body.vertexArray[a + 14], blockList[i].body.vertexArray[a + 15]);
+
+			v3.position = glm::vec3(blockList[i].body.vertexArray[a + 16] + x, blockList[i].body.vertexArray[a + 17] + y, blockList[i].body.vertexArray[a + 18] + z);
+			v3.normal = glm::vec3(blockList[i].body.vertexArray[a + 19], blockList[i].body.vertexArray[a + 20], blockList[i].body.vertexArray[a + 21]);
+			v3.texture = glm::vec2(blockList[i].body.vertexArray[a + 22], blockList[i].body.vertexArray[a + 23]);
+
+			std::vector<face>::iterator faceIter = faces.end(); //loop condition skipped here!!
+			bool repeated = false;
+			bool v1IsThere, v2IsThere, v3IsThere = false;
+
+			while (!repeated && faceIter != faces.end()) {
+
+				face f = *faceIter;
+				if (MathHelper::angleBetween(f.v1.normal, v1.normal) >= 3) {
+
+					std::cout << "OPOSITE FACES!  ";
+					/*if (f.v1.position == v1.position || f.v2.position == v1.position || f.v3.position == v1.position) { v1IsThere = true; }
+					if (f.v1.position == v2.position || f.v2.position == v2.position || f.v3.position == v2.position) { v2IsThere = true; }
+					if (f.v1.position == v3.position || f.v2.position == v3.position || f.v3.position == v3.position) { v3IsThere = true; }*/
+					
+					if (f.v1.position == v1.position || f.v1.position == v2.position || f.v1.position == v3.position) { 
+						f.v1r = true;
+					}
+					if (f.v2.position == v1.position || f.v2.position == v2.position || f.v2.position == v3.position) {
+						f.v2r = true;
+					}
+					if (f.v3.position == v1.position || f.v3.position == v2.position || f.v3.position == v3.position) {
+						f.v3r = true; 
+					}
+				}
+
+				/*if (v1IsThere && v2IsThere && v3IsThere) {
+					repeated = true;
+				}
+				else {*/
+
+					faceIter++;
+				//}
+			}
+
+			face face;
+			face.v1 = v1;
+			face.v2 = v2;
+			face.v3 = v3;
+			faces.push_back(face);
+		};
+	}
+	/*
+	std::vector<int> repeatedFaces;
+
+	for (int a = 0; a < faces.size(); a++) { //find repeated faces
+		for (int b = a + 1; b < faces.size(); b++) {
+
+			glm::vec3 nA = glm::normalize(faces[a].v1.normal);
+			glm::vec3 nB = glm::normalize(faces[b].v1.normal);
+			//std::cout << (vA + vB).x << ", " << (vA + vB).y << ", " << (vA + vB).z << " -- "  << (vA + vB).length() << std::endl;
+			if (faces[a].v1.position == faces[b].v1.position &&
+				faces[a].v2.position == faces[b].v2.position &&
+				faces[a].v3.position == faces[b].v3.position &&
+				MathHelper::getVectorLength(nA + nB) == 0) //if the two vertices are on the same spot and have oposite normals...
+			{
+				repeatedFaces.push_back(a);
+				repeatedFaces.push_back(b);
+			}
+		}
+	}
+	std::cout << "Repeated vertices: " << repeatedFaces.size() << std::endl;
+	for (int c = repeatedFaces.size() - 1; c >= 0; c--) //remove repeated faces
+	{
+		faces.erase(faces.begin() + repeatedFaces[c]);
+	}*/
+
+	GLfloat chunkVertices[116740]; //the maximum amount of vertices a chunk can have is 116736 -> 4 * 4 * 4 * 228
+	GLint vertexCount = faces.size() * 3;
+	int c = 0;
+	for (int a = 0; a < faces.size(); a++) {
+
+		if (!faces[a].v1r || !faces[a].v2r || !faces[a].v3r) {
+			chunkVertices[c++] = faces[a].v1.position.x;
+			chunkVertices[c++] = faces[a].v1.position.y;
+			chunkVertices[c++] = faces[a].v1.position.z;
+
+			chunkVertices[c++] = faces[a].v1.normal.x;
+			chunkVertices[c++] = faces[a].v1.normal.y;
+			chunkVertices[c++] = faces[a].v1.normal.z;
+
+			chunkVertices[c++] = faces[a].v1.texture.x;
+			chunkVertices[c++] = faces[a].v1.texture.y;
+
+			chunkVertices[c++] = faces[a].v2.position.x;
+			chunkVertices[c++] = faces[a].v2.position.y;
+			chunkVertices[c++] = faces[a].v2.position.z;
+
+			chunkVertices[c++] = faces[a].v2.normal.x;
+			chunkVertices[c++] = faces[a].v2.normal.y;
+			chunkVertices[c++] = faces[a].v2.normal.z;
+
+			chunkVertices[c++] = faces[a].v2.texture.x;
+			chunkVertices[c++] = faces[a].v2.texture.y;
+
+			chunkVertices[c++] = faces[a].v3.position.x;
+			chunkVertices[c++] = faces[a].v3.position.y;
+			chunkVertices[c++] = faces[a].v3.position.z;
+
+			chunkVertices[c++] = faces[a].v3.normal.x;
+			chunkVertices[c++] = faces[a].v3.normal.y;
+			chunkVertices[c++] = faces[a].v3.normal.z;
+
+			chunkVertices[c++] = faces[a].v3.texture.x;
+			chunkVertices[c++] = faces[a].v3.texture.y;
+		}
+		
+	}
+
+	for (int i = 0; i < this->generatorList.size(); i++)
+	{
+		glm::vec3 relPosition = this->generatorList[i].relPosition;
+		glm::vec3 axisX = this->generatorList[i].orientationX;
+		glm::vec3 axisY = this->generatorList[i].orientationY;
+		glm::vec3 axisZ = this->generatorList[i].orientationZ;
+		glm::vec3 point;
+		for (int a = 0; a < generatorList[i].body.vertexArray.size(); a = a + 8)
+		{
+			point = relPosition + axisX * generatorList[i].body.vertexArray[a]
+								+ axisY * generatorList[i].body.vertexArray[a + 1]
+								+ axisZ * generatorList[i].body.vertexArray[a + 2];
+
+			chunkVertices[c++] = point.x;
+			chunkVertices[c++] = point.y;
+			chunkVertices[c++] = point.z;
+			
+			chunkVertices[c++] = generatorList[i].body.vertexArray[a + 3];  //Normals
+			chunkVertices[c++] = generatorList[i].body.vertexArray[a + 4];
+			chunkVertices[c++] = generatorList[i].body.vertexArray[a + 5];
+
+			chunkVertices[c++] = generatorList[i].body.vertexArray[a + 6];  //Textures
+			chunkVertices[c++] = generatorList[i].body.vertexArray[a + 7];
 
 			vertexCount++;
 		}
-
-		/*							//POSITION						NORMAL			 TEXT. COORDINATES
-								// 1      2      3				 1     2      3			 X     Y
-		GLfloat vert1[8] = { x - 0.5f, y - 0.5f, z - 0.5f,		0.0f,  0.0f, -1.0f,		0.0f, 0.0f };
-		GLfloat vert2[8] = { x + 0.5f, y + 0.5f, z - 0.5f,		0.0f,  0.0f, -1.0f,		1.0f, 1.0f };
-		GLfloat vert3[8] = { x + 0.5f, y - 0.5f, z - 0.5f,		0.0f,  0.0f, -1.0f,		1.0f, 0.0f };
-		GLfloat vert4[8] = { x - 0.5f, y + 0.5f, z - 0.5f,		0.0f,  0.0f, -1.0f,		0.0f, 1.0f };
-		Face f;
-		memcpy(f.v1, vert1, 8 * sizeof(GLfloat));
-		memcpy(f.v2, vert2, 8 * sizeof(GLfloat));
-		memcpy(f.v3, vert3, 8 * sizeof(GLfloat));
-		memcpy(f.v4, vert4, 8 * sizeof(GLfloat));
-		faces.push_back(f);
-
-		GLfloat vert5[8] = { x - 0.5f, y - 0.5f, z + 0.5f,		0.0f,  0.0f,  1.0f,		0.0f, 0.0f };
-		GLfloat vert6[8] = { x + 0.5f, y + 0.5f, z + 0.5f,		0.0f,  0.0f,  1.0f,		1.0f, 1.0f };
-		GLfloat vert7[8] = { x + 0.5f, y - 0.5f, z + 0.5f,		0.0f,  0.0f,  1.0f,		1.0f, 0.0f };
-		GLfloat vert8[8] = { x - 0.5f, y + 0.5f, z + 0.5f,		0.0f,  0.0f,  1.0f,		0.0f, 1.0f };
-		memcpy(f.v1, vert5, 8 * sizeof(GLfloat));
-		memcpy(f.v2, vert6, 8 * sizeof(GLfloat));
-		memcpy(f.v3, vert7, 8 * sizeof(GLfloat));
-		memcpy(f.v4, vert8, 8 * sizeof(GLfloat));
-		faces.push_back(f);
-
-		GLfloat vert9[8] = { x - 0.5f, y - 0.5f, z + 0.5f,		-1.0f,  0.0f,  0.0f,	0.0f, 0.0f };
-		GLfloat vert10[8] = { x - 0.5f, y + 0.5f, z - 0.5f,		-1.0f,  0.0f,  0.0f,	1.0f, 1.0f };
-		GLfloat vert11[8] = { x - 0.5f, y + 0.5f, z + 0.5f,		-1.0f,  0.0f,  0.0f,	1.0f, 0.0f };
-		GLfloat vert12[8] = { x - 0.5f, y - 0.5f, z - 0.5f,		-1.0f,  0.0f,  0.0f,	0.0f, 1.0f };
-		memcpy(f.v1, vert9, 8 * sizeof(GLfloat));
-		memcpy(f.v2, vert10, 8 * sizeof(GLfloat));
-		memcpy(f.v3, vert11, 8 * sizeof(GLfloat));
-		memcpy(f.v4, vert12, 8 * sizeof(GLfloat));
-		faces.push_back(f);
-
-		GLfloat vert13[8] = { x + 0.5f, y - 0.5f, z + 0.5f,		1.0f,  0.0f,  0.0f,		0.0f, 0.0f };
-		GLfloat vert14[8] = { x + 0.5f, y + 0.5f, z - 0.5f,		1.0f,  0.0f,  0.0f,		1.0f, 1.0f };
-		GLfloat vert15[8] = { x + 0.5f, y + 0.5f, z + 0.5f,		1.0f,  0.0f,  0.0f,		1.0f, 0.0f };
-		GLfloat vert16[8] = { x + 0.5f, y - 0.5f, z - 0.5f,		1.0f,  0.0f,  0.0f,		0.0f, 1.0f };
-		memcpy(f.v1, vert13, 8 * sizeof(GLfloat));
-		memcpy(f.v2, vert14, 8 * sizeof(GLfloat));
-		memcpy(f.v3, vert15, 8 * sizeof(GLfloat));
-		memcpy(f.v4, vert16, 8 * sizeof(GLfloat));
-		faces.push_back(f);
-
-		GLfloat vert17[8] = { x - 0.5f, y - 0.5f, z + 0.5f,		0.0f, -1.0f,  0.0f,		0.0f, 0.0f };
-		GLfloat vert18[8] = { x + 0.5f, y - 0.5f, z - 0.5f,		0.0f, -1.0f,  0.0f,		1.0f, 1.0f };
-		GLfloat vert19[8] = { x + 0.5f, y - 0.5f, z + 0.5f,		0.0f, -1.0f,  0.0f,		1.0f, 0.0f };
-		GLfloat vert20[8] = { x - 0.5f, y - 0.5f, z - 0.5f,		0.0f, -1.0f,  0.0f,		0.0f, 1.0f };
-		memcpy(f.v1, vert17, 8 * sizeof(GLfloat));
-		memcpy(f.v2, vert18, 8 * sizeof(GLfloat));
-		memcpy(f.v3, vert19, 8 * sizeof(GLfloat));
-		memcpy(f.v4, vert20, 8 * sizeof(GLfloat));
-		faces.push_back(f);
-
-		GLfloat vert21[8] = { x - 0.5f, y + 0.5f, z + 0.5f,		0.0f,  1.0f,  0.0f,		0.0f, 0.0f };
-		GLfloat vert22[8] = { x + 0.5f, y + 0.5f, z - 0.5f,		0.0f,  1.0f,  0.0f,		1.0f, 1.0f };
-		GLfloat vert23[8] = { x + 0.5f, y + 0.5f, z + 0.5f,		0.0f,  1.0f,  0.0f,		1.0f, 0.0f };
-		GLfloat vert24[8] = { x - 0.5f, y + 0.5f, z - 0.5f,		0.0f,  1.0f,  0.0f,		0.0f, 1.0f };
-		memcpy(f.v1, vert21, 8 * sizeof(GLfloat));
-		memcpy(f.v2, vert22, 8 * sizeof(GLfloat));
-		memcpy(f.v3, vert23, 8 * sizeof(GLfloat));
-		memcpy(f.v4, vert24, 8 * sizeof(GLfloat));
-		faces.push_back(f);
-	}
-
-	for (int f = 0; f < faces.size(); f++)
-	{
-		for (int k = 0; k < 8; k++)
-		{
-			chunkVertices[a] = faces[f].v1[k];
-			a++;
-		}
-		for (int k = 0; k < 8; k++)
-		{
-			chunkVertices[a] = faces[f].v2[k];
-			a++;
-		}
-		for (int k = 0; k < 8; k++)
-		{
-			chunkVertices[a] = faces[f].v3[k];
-			a++;
-		}
-		for (int k = 0; k < 8; k++)
-		{
-			chunkVertices[a] = faces[f].v2[k];
-			a++;
-		}
-		for (int k = 0; k < 8; k++)
-		{
-			chunkVertices[a] = faces[f].v1[k];
-			a++;
-		}
-		for (int k = 0; k < 8; k++)
-		{
-			chunkVertices[a] = faces[f].v4[k];
-			a++;
-		}*/
 	}
 
 	GLuint cVAO, cVBO;

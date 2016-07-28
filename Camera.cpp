@@ -3,18 +3,18 @@
 
 extern std::vector<ChunkPack> chunkPacks;
 
-Camera::Camera(glm::vec3 absPosition, glm::vec3 up, GLfloat yaw, GLfloat pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
+Camera::Camera(glm::vec3 absPosition, glm::vec3 up, GLfloat yaw, GLfloat pitch, GLfloat roll) : Front(glm::vec3(1.0f, 0.0f, 0.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
 {
 	this->Position = absPosition;
 	this->WorldUp = up;
 	this->Yaw = yaw;
 	this->Pitch = pitch;
+	this->Roll = roll;
 	this->updateCameraVectors();
 }
 
 // Constructor with scalar values
-Camera::Camera(GLfloat posX, GLfloat posY, GLfloat posZ, GLfloat upX, GLfloat upY, GLfloat upZ, GLfloat yaw, GLfloat pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
-{
+Camera::Camera(GLfloat posX, GLfloat posY, GLfloat posZ, GLfloat upX, GLfloat upY, GLfloat upZ, GLfloat yaw, GLfloat pitch, GLfloat roll) : Front(glm::vec3(1.0f, 0.0f, 0.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM){
 	this->Position = glm::vec3(posX, posY, posZ);
 	this->WorldUp = glm::vec3(upX, upY, upZ);
 	this->Yaw = yaw;
@@ -47,7 +47,7 @@ void Camera::ProcessKeyboard(Camera_Movement direction, GLfloat deltaTime)
 
 	float dist;
 	float maxChunkRange = sqrt(3 * Configuration::CHUNK_SIZE ^ 2) + totalHeight; // chunk size = 8  -->  sqrt(8^2 + 8^2 + 8^2) = ~13.85  -->  totalHeight = 4  -->> 13.85 + 4 = ~18
-	                    
+
 	for (int i = 0; i < chunkPacks.size(); i++) //iterate through all chunk packs to find the 8 closest chunks to the block spawn absPosition
 	{
 		chunksToProcess = chunkPacks[i].getChunkAbsPositions(); //to do so, we need the absolute absPosition of all the chunks
@@ -179,48 +179,48 @@ void Camera::ProcessKeyboard(Camera_Movement direction, GLfloat deltaTime)
 	GLfloat velocity = this->MovementSpeed * deltaTime;
 
 	if (direction == FORWARD)
-		this->Position += frontMovement * velocity;
+		this->Position += this->Front * velocity;
 
 	if (direction == BACKWARD)
-		this->Position += backMovement * velocity;
+		this->Position -= this->Front * velocity;
 
 	if (direction == LEFT)
-		this->Position += leftMovement * velocity;
+		this->Position -= this->Right * velocity;
 
 	if (direction == RIGHT)
-		this->Position += rightMovement * velocity;
+		this->Position += this->Right * velocity;
 
 	if (direction == UP)
-		this->Position += upMovement * velocity;
-
+		this->Position += this->Up * velocity;
 	if (direction == DOWN)
-		this->Position += downMovement * velocity;
+		this->Position -= this->Up * velocity;
 
-	this->SpawnPosition = this->Position + this->Front * this->spawnDistance - this->Up / this->spawnDistance;
-	this->pickBlock();
+	if (direction == ROLL_LEFT)
+		this->lastTickMove.x += this->MouseSensitivity * 700;
+
+	if (direction == ROLL_RIGHT)
+		this->lastTickMove.x -= this->MouseSensitivity * 700;
+
+	this->updateCameraVectors();
 }
 
 // Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
 void Camera::ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch)
 {
-	xoffset *= this->MouseSensitivity;
-	yoffset *= this->MouseSensitivity;
-
-	this->Yaw += xoffset;
-	this->Pitch += yoffset;
+	this->lastTickMove.y -= xoffset;
+	this->lastTickMove.z += yoffset;
 
 	// Make sure that when pitch is out of bounds, screen doesn't get flipped
-	if (constrainPitch)
+	/*if (constrainPitch)
 	{
 		if (this->Pitch > 89.0f)
 			this->Pitch = 89.0f;
 		if (this->Pitch < -89.0f)
 			this->Pitch = -89.0f;
-	}
+	}*/
 
 	// Update Front, Right and Up Vectors using the updated Eular angles
 	this->updateCameraVectors();
-	this->pickBlock();
 }
 
 // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
@@ -309,7 +309,24 @@ void Camera::pickBlock() {
 // Calculates the front vector from the Camera's (updated) Eular Angles
 void Camera::updateCameraVectors()
 {
-	// Calculate the new Front vector
+
+	this->Front = MathHelper::rotatePointArroundAxis(this->Front, this->Up, this->lastTickMove.y * this->MouseSensitivity);
+	this->Right = MathHelper::rotatePointArroundAxis(this->Right, this->Up, this->lastTickMove.y * this->MouseSensitivity);
+
+	this->Right = MathHelper::rotatePointArroundAxis(this->Right, this->Front, this->lastTickMove.x * this->MouseSensitivity);
+	this->Up = MathHelper::rotatePointArroundAxis(this->Up, this->Front, this->lastTickMove.x * this->MouseSensitivity);
+
+	this->Front = MathHelper::rotatePointArroundAxis(this->Front, this->Right, this->lastTickMove.z * this->MouseSensitivity);
+	this->Up = MathHelper::rotatePointArroundAxis(this->Up, this->Right, this->lastTickMove.z * this->MouseSensitivity);
+
+	this->Pitch = MathHelper::getAnglesFromAim(this->Front).first;
+	this->Yaw = -MathHelper::getAnglesFromAim(this->Front).second;
+	this->Roll = MathHelper::findRoll(this->Front, this->Right);
+
+	this->lastTickMove = glm::vec3(0, 0, 0);
+	this->SpawnPosition = this->Position + this->Front * this->spawnDistance - this->Up / this->spawnDistance;
+
+	/*// Calculate the new Front vector
 	glm::vec3 front;
 	front.x = cos(glm::radians(this->Yaw)) * cos(glm::radians(this->Pitch));
 	front.y = sin(glm::radians(this->Pitch));
@@ -318,5 +335,5 @@ void Camera::updateCameraVectors()
 	// Also re-calculate the Right and Up vector
 	this->Right = glm::normalize(glm::cross(this->Front, this->WorldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 	this->Up = glm::normalize(glm::cross(this->Right, this->Front));
-	this->SpawnPosition = this->Position + this->Front * this->spawnDistance - this->Up / this->spawnDistance;
+	this->SpawnPosition = this->Position + this->Front * this->spawnDistance - this->Up / this->spawnDistance;*/
 }
