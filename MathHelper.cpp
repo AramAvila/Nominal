@@ -2,12 +2,15 @@
 
 using namespace std;
 
+const double MathHelper::PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679821480865132823066470938446095505822317253594081284811174502;
 
 double MathHelper::getVectorLength(glm::vec3 vector) {
 
-	double dist = pow(vector.x, 2) + pow(vector.y, 2) + pow(vector.z, 2);
+	/*double dist = pow(vector.x, 2) + pow(vector.y, 2) + pow(vector.z, 2);
 
-	return sqrt(dist);
+	return sqrt(dist);*/
+
+	return sqrt(pow(vector.x, 2) + pow(vector.y, 2) + pow(vector.z, 2));
 }
 
 /*glm::vec3 MathHelper::getEntityMovement(Object * ent) {
@@ -77,6 +80,10 @@ glm::ivec3 MathHelper::getVectorDirectionCustomAxis(glm::vec3 disp, glm::vec3 ax
 	double angleY = glm::degrees(angleBetween(disp, axisY));
 	double angleZ = glm::degrees(angleBetween(disp, axisZ));
 
+	double minusAngleX = glm::degrees(angleBetween(disp, -axisX));
+	double minusAngleY = glm::degrees(angleBetween(disp, -axisY));
+	double minusAngleZ = glm::degrees(angleBetween(disp, -axisZ));
+
 	if (angleX < 45) {
 		orientation.x = 1;
 	}
@@ -100,10 +107,18 @@ glm::ivec3 MathHelper::getVectorDirectionCustomAxis(glm::vec3 disp, glm::vec3 ax
 	return orientation;
 }
 
-float MathHelper::angleBetween(glm::vec3 a, glm::vec3 b) {
-	glm::vec3 nA = glm::normalize(a);
+/// <summary>
+/// Returns the angle between 2 vectors. In radians.
+/// </summary>
+/// <param name="a">First vector.</param>
+/// <param name="b">Second vector.</param>
+/// <returns></returns>
+float inline MathHelper::angleBetween(glm::vec3 a, glm::vec3 b) {
+	/*glm::vec3 nA = glm::normalize(a);
 	glm::vec3 nB = glm::normalize(b);
-	return acos(glm::dot(nA, nB));
+	return acos(glm::dot(nA, nB));*/
+
+	return acos(glm::dot(glm::normalize(a), glm::normalize(b)));
 }
 
 float MathHelper::angleBetweenNormal(glm::vec3 a, glm::vec3 b, glm::vec3 n) {
@@ -269,27 +284,146 @@ glm::vec3 MathHelper::rotatePointArroundAxis(glm::vec3 point, glm::vec3 axis, do
 	return rotatedPoint;
 }
 
+/// <summary>
+/// Gets the angles from aim.
+/// </summary>
+/// <param name="viewAxis">The view axis.</param>
+/// <returns>"std::pair-pitch, yaw- in radians"</returns>
 std::pair<double, double> MathHelper::getAnglesFromAim(glm::vec3 viewAxis) {
 
 	glm::normalize(viewAxis);
 
-	double pitch = -atan2(viewAxis.y, sqrt(viewAxis.x * viewAxis.x + viewAxis.z * viewAxis.z));
-	double yaw = atan2(viewAxis.z, viewAxis.x) + PI;
+	double pitch = atan2(viewAxis.y, sqrt(viewAxis.x * viewAxis.x + viewAxis.z * viewAxis.z));
+	double yaw = -atan2(viewAxis.z, viewAxis.x);
 
 	std::pair<double, double> returnValues;
 	returnValues.first = pitch;
-	returnValues.second = yaw - PI / 2;
+	returnValues.second = yaw;
 	return returnValues;
 }
 
 //https://www.maplesoft.com/support/help/Maple/view.aspx?path=MathApps/ProjectionOfVectorOntoPlane
 double MathHelper::findRoll(glm::vec3 axisUp, glm::vec3 axisRight) {
 
-	double roll = MathHelper::angleBetween(axisRight, glm::vec3(-axisUp.z, 0, axisUp.x));
+	double roll = MathHelper::angleBetween(axisRight, glm::vec3(axisRight.z, 0, axisRight.x));
 
 	if (axisRight.y < 0) {
 		roll = 2 * PI - roll;
 	}
 	return roll;
 
+}
+
+
+/// <summary>
+/// Determines whether the given point is inside the paralelogram formed by parStart and parEnd. Remembrer, this paralelogram vertices are paralel to the world axis (1,0,0)(0,1,0)(0,0,1).
+/// </summary>
+/// <param name="point">The point.</param>
+/// <param name="parStart">Paralelogram start.</param>
+/// <param name="parEnd">Paralelogram end.</param>
+/// <returns></returns>
+bool MathHelper::isInsideParalelogram(glm::vec3 point, glm::vec3 parStart, glm::vec3 parEnd)
+{
+
+	glm::vec3 parDiagonal = parEnd - parStart;
+	glm::vec3 pointDiagonal = point - parStart;
+
+	bool inside = true;
+
+	if (parDiagonal.x > 0) {
+		if (pointDiagonal.x < 0 || pointDiagonal.x > parDiagonal.x) {
+			inside = false;
+		}
+	}
+	else {
+		if (pointDiagonal.x > 0 || pointDiagonal.x < parDiagonal.x) {
+			inside = false;
+		}
+	}
+
+	if (parDiagonal.y > 0) {
+		if (pointDiagonal.y < 0 || pointDiagonal.y > parDiagonal.y) {
+			inside = false;
+		}
+	}
+	else {
+		if (pointDiagonal.y > 0 || pointDiagonal.y < parDiagonal.y) {
+			inside = false;
+		}
+	}
+
+	if (parDiagonal.z > 0) {
+		if (pointDiagonal.z < 0 || pointDiagonal.z > parDiagonal.z) {
+			inside = false;
+		}
+	}
+	else {
+		if (pointDiagonal.z > 0 || pointDiagonal.z < parDiagonal.z) {
+			inside = false;
+		}
+	}
+
+	return inside;
+}
+
+
+glm::vec3 MathHelper::findVectorPointToParalelogram(glm::vec3 point, glm::vec3 polStart, glm::vec3 polEnd)
+{
+	glm::vec3 result(0,0,0);
+
+	glm::vec3 polDiagonal = polEnd - polStart;
+	glm::vec3 polStartToPoint = point - polStart;
+
+	if (polDiagonal.x > 0) {
+		if (polStartToPoint.x < 0) {
+			result.x = polStart.x - point.x;
+		}
+		else if (polStartToPoint.x > polDiagonal.x) {
+			result.x = polEnd.x - point.x;
+		}
+	}
+	else {
+		if (polStartToPoint.x > 0) {
+			result.x = polStart.x - point.x;
+		}
+		else if (polStartToPoint.x < polDiagonal.x) {
+			result.x = polEnd.x - point.x;
+		}
+	}
+
+	if (polDiagonal.y > 0) {
+		if (polStartToPoint.y < 0) {
+			result.y = polStart.y - point.y;
+		}
+		else if (polStartToPoint.y > polDiagonal.y) {
+			result.y = polEnd.y - point.y;
+		}
+	}
+	else {
+		if (polStartToPoint.y > 0) {
+			result.y = polStart.y - point.y;
+		}
+		else if (polStartToPoint.y < polDiagonal.y) {
+			result.y = polEnd.y - point.y;
+		}
+	}
+	
+	if (polDiagonal.z > 0) {
+		if (polStartToPoint.z < 0) {
+			result.z = polStart.z - point.z;
+		}
+		else if (polStartToPoint.z > polDiagonal.z) {
+			result.z = polEnd.z - point.z;
+		}
+	}
+	else {
+		if (polStartToPoint.z > 0) {
+			result.z = polStart.z - point.z;
+		}
+		else if (polStartToPoint.z < polDiagonal.z) {
+			result.z = polEnd.z - point.z;
+		}
+	}
+
+	return result;
 }

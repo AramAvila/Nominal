@@ -1,24 +1,11 @@
 #pragma once
 #include "Camera.h"
 
-extern std::vector<ChunkPack> chunkPacks;
+extern std::vector<std::shared_ptr<ChunkPack>>* chunkPacks;
 
-Camera::Camera(glm::vec3 absPosition, glm::vec3 up, GLfloat yaw, GLfloat pitch, GLfloat roll) : Front(glm::vec3(1.0f, 0.0f, 0.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
+Camera::Camera(glm::vec3 absPosition)
 {
 	this->Position = absPosition;
-	this->WorldUp = up;
-	this->Yaw = yaw;
-	this->Pitch = pitch;
-	this->Roll = roll;
-	this->updateCameraVectors();
-}
-
-// Constructor with scalar values
-Camera::Camera(GLfloat posX, GLfloat posY, GLfloat posZ, GLfloat upX, GLfloat upY, GLfloat upZ, GLfloat yaw, GLfloat pitch, GLfloat roll) : Front(glm::vec3(1.0f, 0.0f, 0.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM){
-	this->Position = glm::vec3(posX, posY, posZ);
-	this->WorldUp = glm::vec3(upX, upY, upZ);
-	this->Yaw = yaw;
-	this->Pitch = pitch;
 	this->updateCameraVectors();
 }
 
@@ -31,150 +18,6 @@ glm::mat4 Camera::GetViewMatrix()
 // Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
 void Camera::ProcessKeyboard(Camera_Movement direction, GLfloat deltaTime)
 {
-	/*std::vector<glm::vec3> movementCorrection;
-	std::map<glm::vec3, Chunk*> chunksToProcess; //contains the abs absPosition of all chunks in the pack
-	std::map<float, std::pair<Chunk*, ChunkPack*>> selectedChunks; //chunks that are close enough to colide with the player
-
-	//These lists will contain the lists of colliding blocks narrowing a filter each time
-	std::vector<glm::vec3> colisionPointsF1; //all blocks in height radius, will contain the center point of the cube
-	std::vector<glm::vec3> colisionPointsF2; //all blocks in witdh radius, will contain the shortest vector to the player height line
-	std::vector<glm::vec3> colisionPointsF3; //all blocks close enough to be either at top or bottom, will contain the center point of the block
-
-	//camera body
-	float cubeMargin = 0.71f;
-	float sides = 1.5f;		  //Width of the player
-	float totalHeight = 4.0f; //Heigth of the player
-
-	float dist;
-	float maxChunkRange = sqrt(3 * Configuration::CHUNK_SIZE ^ 2) + totalHeight; // chunk size = 8  -->  sqrt(8^2 + 8^2 + 8^2) = ~13.85  -->  totalHeight = 4  -->> 13.85 + 4 = ~18
-
-	for (int i = 0; i < chunkPacks.size(); i++) //iterate through all chunk packs to find the 8 closest chunks to the block spawn absPosition
-	{
-		chunksToProcess = chunkPacks[i].getChunkAbsPositions(); //to do so, we need the absolute absPosition of all the chunks
-		for (std::map<glm::vec3, Chunk*>::iterator it = chunksToProcess.begin(); it != chunksToProcess.end(); ++it)
-		{
-			dist = MathHelper::getVectorLength(it->first - this->Position);
-			if (dist < maxChunkRange) {
-				selectedChunks[dist] = std::make_pair(it->second, &chunkPacks[i]);
-			}
-		}
-	}
-
-	std::map<float, std::pair<Chunk*, ChunkPack*>>::iterator selChunks = selectedChunks.begin(); //maps are automaticaly sorted by key, therefore, we only need to take the first 8 items
-	int c = 0;
-	while (selChunks != selectedChunks.end() && c < 9) {
-		for (int i = 0; i < selChunks->second.first->objectList.size(); i++)
-		{
-			if (MathHelper::getVectorLength(selChunks->second.first->objectList[i].absPosition - this->Position) < totalHeight) { //the first filter gets the blocks in height range
-				colisionPointsF1.push_back(selChunks->second.first->objectList[i].absPosition);
-			}
-		}
-		selChunks++;
-		c++;
-	}
-
-	std::vector<glm::vec3>::iterator filter1 = colisionPointsF1.begin();
-	glm::vec3 shortestVec;
-	float length;
-	while (filter1 != colisionPointsF1.end())
-	{
-		shortestVec = MathHelper::shortestVecToLine(this->Right, this->Front, this->Up, *filter1, this->Position);
-		std::cout << shortestVec.x - filter1->x << ", " << shortestVec.y - filter1->y << ", " << shortestVec.z - filter1->z << std::endl;
-		length = MathHelper::getVectorLength(shortestVec-*filter1);
-		if (length < sides) {
-			if (length < cubeMargin) {
-				colisionPointsF3.push_back(*filter1);
-			}
-			else {
-				colisionPointsF2.push_back(shortestVec);
-			}
-		}
-		filter1++;
-	}
-	std::cout << "------------------------------------------------------" << std::endl;
-	std::vector<glm::vec3>::iterator filter2 = colisionPointsF2.begin();
-	while (filter2 != colisionPointsF2.end()) {
-		movementCorrection.push_back(MathHelper::getVectorDirection(*filter2));
-		filter2++;
-	}
-
-	std::vector<glm::vec3>::iterator filter3 = colisionPointsF3.begin();
-	while (filter3 != colisionPointsF3.end()) {
-		movementCorrection.push_back(MathHelper::getVectorDirection(this->Position - *filter3));
-		filter3++;
-	}*/
-
-	glm::vec3 posSides(0, 0, 0);
-	glm::vec3 negSides(0, 0, 0);
-
-	/*for (int i = 0; i < movementCorrection.size(); i++)
-	{
-		if (movementCorrection[i].x != 0) {
-			if (movementCorrection[i].x < 0) {
-				posSides.x += 1;
-			}
-			else {
-				negSides.x += 1;
-			}
-		}
-
-		if (movementCorrection[i].y != 0) {
-			if (movementCorrection[i].y < 0) {
-				posSides.y += 1;
-			}
-			else {
-				negSides.y += 1;
-			}
-		}
-
-		if (movementCorrection[i].z != 0) {
-			if (movementCorrection[i].z < 0) {
-				posSides.z += 1;
-			}
-			else {
-				negSides.z += 1;
-			}
-		}
-	}*/
-
-	posSides.x = (posSides.x != 0) ? 0 : 1;
-	negSides.x = (negSides.x != 0) ? 0 : 1;
-
-	posSides.y = (posSides.y != 0) ? 0 : 1;
-	negSides.y = (negSides.y != 0) ? 0 : 1;
-
-	posSides.z = (posSides.z != 0) ? 0 : 1;
-	negSides.z = (negSides.z != 0) ? 0 : 1;
-
-	glm::vec3 frontMovement(0, 0, 0);
-	frontMovement.x = (this->Front.x > 0) ? this->Front.x * posSides.x : this->Front.x * negSides.x;
-	frontMovement.y = (this->Front.y > 0) ? this->Front.y * posSides.y : this->Front.y * negSides.y;
-	frontMovement.z = (this->Front.z > 0) ? this->Front.z * posSides.z : this->Front.z * negSides.z;
-
-	glm::vec3 backMovement(0, 0, 0);
-	backMovement.x = (this->Front.x < 0) ? -this->Front.x * posSides.x : -this->Front.x * negSides.x;
-	backMovement.y = (this->Front.y < 0) ? -this->Front.y * posSides.y : -this->Front.y * negSides.y;
-	backMovement.z = (this->Front.z < 0) ? -this->Front.z * posSides.z : -this->Front.z * negSides.z;
-
-	glm::vec3 rightMovement(0, 0, 0);
-	rightMovement.x = (this->Right.x > 0) ? this->Right.x * posSides.x : this->Right.x * negSides.x;
-	rightMovement.y = (this->Right.y > 0) ? this->Right.y * posSides.y : this->Right.y * negSides.y;
-	rightMovement.z = (this->Right.z > 0) ? this->Right.z * posSides.z : this->Right.z * negSides.z;
-
-	glm::vec3 leftMovement(0, 0, 0);
-	leftMovement.x = (this->Right.x < 0) ? -this->Right.x * posSides.x : -this->Right.x * negSides.x;
-	leftMovement.y = (this->Right.y < 0) ? -this->Right.y * posSides.y : -this->Right.y * negSides.y;
-	leftMovement.z = (this->Right.z < 0) ? -this->Right.z * posSides.z : -this->Right.z * negSides.z;
-
-	glm::vec3 upMovement(0, 0, 0);
-	upMovement.x = (this->Up.x > 0) ? this->Up.x * posSides.x : this->Up.x * negSides.x;
-	upMovement.y = (this->Up.y > 0) ? this->Up.y * posSides.y : this->Up.y * negSides.y;
-	upMovement.z = (this->Up.z > 0) ? this->Up.z * posSides.z : this->Up.z * negSides.z;
-
-	glm::vec3 downMovement(0, 0, 0);
-	downMovement.x = (this->Up.x < 0) ? -this->Up.x * posSides.x : -this->Up.x * negSides.x;
-	downMovement.y = (this->Up.y < 0) ? -this->Up.y * posSides.y : -this->Up.y * negSides.y;
-	downMovement.z = (this->Up.z < 0) ? -this->Up.z * posSides.z : -this->Up.z * negSides.z;
 
 	GLfloat velocity = this->MovementSpeed * deltaTime;
 
@@ -185,10 +28,10 @@ void Camera::ProcessKeyboard(Camera_Movement direction, GLfloat deltaTime)
 		this->Position -= this->Front * velocity;
 
 	if (direction == LEFT)
-		this->Position -= this->Right * velocity;
+		this->Position += this->Right * velocity;
 
 	if (direction == RIGHT)
-		this->Position += this->Right * velocity;
+		this->Position -= this->Right * velocity;
 
 	if (direction == UP)
 		this->Position += this->Up * velocity;
@@ -196,10 +39,10 @@ void Camera::ProcessKeyboard(Camera_Movement direction, GLfloat deltaTime)
 		this->Position -= this->Up * velocity;
 
 	if (direction == ROLL_LEFT)
-		this->lastTickMove.x += this->MouseSensitivity * 700;
+		this->lastTickMove.z -= this->MouseSensitivity * 5;
 
 	if (direction == ROLL_RIGHT)
-		this->lastTickMove.x -= this->MouseSensitivity * 700;
+		this->lastTickMove.z += this->MouseSensitivity * 5;
 
 	this->updateCameraVectors();
 }
@@ -207,133 +50,101 @@ void Camera::ProcessKeyboard(Camera_Movement direction, GLfloat deltaTime)
 // Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
 void Camera::ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch)
 {
-	this->lastTickMove.y -= xoffset;
-	this->lastTickMove.z += yoffset;
-
-	// Make sure that when pitch is out of bounds, screen doesn't get flipped
-	/*if (constrainPitch)
-	{
-		if (this->Pitch > 89.0f)
-			this->Pitch = 89.0f;
-		if (this->Pitch < -89.0f)
-			this->Pitch = -89.0f;
-	}*/
+	this->lastTickMove.y -= xoffset * this->MouseSensitivity;
+	this->lastTickMove.x -= yoffset * this->MouseSensitivity;
 
 	// Update Front, Right and Up Vectors using the updated Eular angles
 	this->updateCameraVectors();
 }
 
-// Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
+
 void Camera::ProcessMouseScroll(GLfloat yoffset)
 {
-	if (this->spawnDistance >= 1.0f && this->spawnDistance <= 5.0f)
-		this->spawnDistance += yoffset;
 
-	if (this->spawnDistance < 1.0f)
-		this->spawnDistance = 1.0f;
-
-	if (this->spawnDistance > 5.0f)
-		this->spawnDistance = 5.0f;
-
-	this->SpawnPosition = this->Position + this->Front * this->spawnDistance - this->Up / this->spawnDistance;
-	this->pickBlock();
 }
 
 void Camera::pickBlock() {
-
-	/*float distBlock = 50;
-	float prevBlock = 50;
-
-	for (int i = 0; i < staticBlocks.size(); i++)
-	{
-		distBlock = MathHelper::getVectorLength(staticBlocks[i]->absPosition - this->SpawnPosition);
-		if (distBlock < prevBlock) {
-			if (prevBlock < 1.0f) {
-				if (lastSelectedBlock == NULL) {
-					this->lastSelectedBlock = staticBlocks[i];
-				}
-				this->lastSelectedBlock->selected = 0;
-				this->lastSelectedBlock = staticBlocks[i];
-				this->lastSelectedBlock->selected = 1;
-			}
-			prevBlock = distBlock;
-		}
-	}
-
-	if (prevBlock >= 1.0f && lastSelectedBlock != NULL) {
-		this->lastSelectedBlock->selected = 0;
-		this->lastSelectedBlock = NULL;
-	}-------------------------
-
-	float distBlock;
-	float prevDist = 50;
-
-	std::vector<Block *> blocksToEvaluate = staticBlocks;
-
-	for (int i = 0; i < staticBlocks.size(); i++)
-	{
-		distBlock = MathHelper::getVectorLength(staticBlocks[i]->absPosition - this->Position + this->Front * 2.0f);
-		if (distBlock < 2) {
-			blocksToEvaluate.push_back(staticBlocks[i]);
-		}
-	}
-
-	glm::vec3 newSpot;
-	float i = 0.01f;
-	while (i <= 5) {
-		newSpot= this->Position + this->Front * i;
-		for (int i = 0; i < blocksToEvaluate.size(); i++)
-		{
-			distBlock = MathHelper::getVectorLength(blocksToEvaluate[i]->absPosition - newSpot);
-			if (distBlock < prevDist) {
-				if (prevDist < 1.0f) {
-					if (lastSelectedBlock == NULL) {
-						this->lastSelectedBlock = staticBlocks[i];
-					}
-					this->lastSelectedBlock->selected = 0;
-					this->lastSelectedBlock = staticBlocks[i];
-					this->lastSelectedBlock->selected = 1;
-				}
-				prevDist = distBlock;
-			}
-		}
-		i += 0.5f;
-	}
-
-	if (prevDist >= 1.0f && lastSelectedBlock != NULL) {
-		this->lastSelectedBlock->selected = 0;
-		this->lastSelectedBlock = NULL;
-	}*/
 };
 
-// Calculates the front vector from the Camera's (updated) Eular Angles
 void Camera::updateCameraVectors()
 {
 
-	this->Front = MathHelper::rotatePointArroundAxis(this->Front, this->Up, this->lastTickMove.y * this->MouseSensitivity);
-	this->Right = MathHelper::rotatePointArroundAxis(this->Right, this->Up, this->lastTickMove.y * this->MouseSensitivity);
+	this->Front = MathHelper::rotatePointArroundAxis(this->Front, this->Up, this->lastTickMove.y);
+	this->Right = MathHelper::rotatePointArroundAxis(this->Right, this->Up, this->lastTickMove.y);
 
-	this->Right = MathHelper::rotatePointArroundAxis(this->Right, this->Front, this->lastTickMove.x * this->MouseSensitivity);
-	this->Up = MathHelper::rotatePointArroundAxis(this->Up, this->Front, this->lastTickMove.x * this->MouseSensitivity);
+	this->Right = MathHelper::rotatePointArroundAxis(this->Right, this->Front, this->lastTickMove.z);
+	this->Up = MathHelper::rotatePointArroundAxis(this->Up, this->Front, this->lastTickMove.z);
 
-	this->Front = MathHelper::rotatePointArroundAxis(this->Front, this->Right, this->lastTickMove.z * this->MouseSensitivity);
-	this->Up = MathHelper::rotatePointArroundAxis(this->Up, this->Right, this->lastTickMove.z * this->MouseSensitivity);
+	this->Front = MathHelper::rotatePointArroundAxis(this->Front, this->Right, this->lastTickMove.x);
+	this->Up = MathHelper::rotatePointArroundAxis(this->Up, this->Right, this->lastTickMove.x);
 
 	this->Pitch = MathHelper::getAnglesFromAim(this->Front).first;
-	this->Yaw = -MathHelper::getAnglesFromAim(this->Front).second;
+	this->Yaw = MathHelper::getAnglesFromAim(this->Front).second;
 	this->Roll = MathHelper::findRoll(this->Front, this->Right);
 
 	this->lastTickMove = glm::vec3(0, 0, 0);
-	this->SpawnPosition = this->Position + this->Front * this->spawnDistance - this->Up / this->spawnDistance;
+	this->SpawnPosition = glm::vec3(this->Position.x, this->Position.y, this->Position.z) + this->Front * this->spawnDistance - this->Up*this->spawnDistance / 4.0f;
 
-	/*// Calculate the new Front vector
-	glm::vec3 front;
-	front.x = cos(glm::radians(this->Yaw)) * cos(glm::radians(this->Pitch));
-	front.y = sin(glm::radians(this->Pitch));
-	front.z = sin(glm::radians(this->Yaw)) * cos(glm::radians(this->Pitch));
-	this->Front = glm::normalize(front);
-	// Also re-calculate the Right and Up vector
-	this->Right = glm::normalize(glm::cross(this->Front, this->WorldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-	this->Up = glm::normalize(glm::cross(this->Right, this->Front));
-	this->SpawnPosition = this->Position + this->Front * this->spawnDistance - this->Up / this->spawnDistance;*/
+
+	float dist = Configuration::MAXIMUM_JOIN_RANGE * 2; //just to validate the first iteration of the if
+
+	Chunk* closestChunk = NULL;
+	ChunkPack* closestPack = NULL;
+	glm::vec3 closestRelPosition;
+	glm::vec3 shortestDistanceToPol;
+	HelperClasses::Polygon * closestPoligon = NULL;
+	glm::vec3 shortestVec;
+
+	for (std::vector<std::shared_ptr<ChunkPack>>::iterator chunkPack = chunkPacks->begin(); chunkPack != chunkPacks->end(); chunkPack++)
+	{
+		glm::vec3 relPosition = MathHelper::changeReferenceSystem(this->Position, (*chunkPack)->absPosition, (*chunkPack)->relativeAxisX, (*chunkPack)->relativeAxisY, (*chunkPack)->relativeAxisZ);
+		glm::vec3 relFront = MathHelper::changeReferenceSystem(this->Front, (*chunkPack)->absPosition, (*chunkPack)->relativeAxisX, (*chunkPack)->relativeAxisY, (*chunkPack)->relativeAxisZ);
+		
+		for (std::vector<std::shared_ptr<Chunk>>::iterator chunk = (*chunkPack)->chunkList.begin(); chunk != (*chunkPack)->chunkList.end(); chunk++)
+		{
+			//if the distance between the center of the chunk and the point is less than the lentgth of the diagonal of the chunk plus the join range of the cube, the poligon will be in range to join the chunk
+			glm::vec3 chunkCenter = (*chunk)->getChunkCenter();
+			glm::vec3 cameraToChunkCenter = chunkCenter - relPosition;
+
+			std::cout << MathHelper::angleBetween(relFront, cameraToChunkCenter) << std::endl;
+
+			if (MathHelper::getVectorLength(cameraToChunkCenter) < sqrt(3 * pow(Configuration::CHUNK_SIZE / 2, 2)) + Configuration::MAXIMUM_JOIN_RANGE &&
+				MathHelper::angleBetween(relFront, cameraToChunkCenter) < MathHelper::PI) 
+			{
+				std::cout << "CHUNK IN RANGE!!!" << std::endl;
+				//if (MathHelper::getVectorLength((glm::vec3)(*chunk)->getChunkCenter() - relPosition) < sqrt(3 * pow(Configuration::CHUNK_SIZE / 2, 2)) + Configuration::MAXIMUM_JOIN_RANGE) {
+					//if we entered this loop is becouse the chunk is close enough to the start point of the poligon, so that the poligon will have to join the chunk
+					//iterate through all of the poligons in the chunk to see if there is any close enough
+				/*for each (HelperClasses::Polygon pol in (*chunk)->polygons) {
+
+					glm::vec3 polDiagonal = pol.end - pol.start;
+
+					polDiagonal.x = polDiagonal.x / abs(polDiagonal.x);
+					polDiagonal.y = polDiagonal.y / abs(polDiagonal.y);
+					polDiagonal.z = polDiagonal.z / abs(polDiagonal.z);
+
+					glm::vec3 polMarginsStart = pol.start - glm::vec3(Configuration::MAXIMUM_JOIN_RANGE * polDiagonal.x, Configuration::MAXIMUM_JOIN_RANGE * polDiagonal.y, Configuration::MAXIMUM_JOIN_RANGE * polDiagonal.z);
+					glm::vec3 polMarginsEnd = pol.end + glm::vec3(Configuration::MAXIMUM_JOIN_RANGE * polDiagonal.x, Configuration::MAXIMUM_JOIN_RANGE * polDiagonal.y, Configuration::MAXIMUM_JOIN_RANGE * polDiagonal.z);
+
+					if (MathHelper::isInsideParalelogram(relPosition, polMarginsStart, polMarginsEnd)) {
+						shortestVec = MathHelper::findVectorPointToParalelogram(relPosition, pol.start, pol.end);
+						if (shortestVec.length() < dist) {
+							dist = shortestVec.length();
+							closestChunk = &(*(*chunk));
+							closestPack = &(*(*chunkPack));
+							closestRelPosition = relPosition;
+							shortestDistanceToPol = shortestVec;
+							closestPoligon = &pol;
+						}
+					}
+				}*/
+			}
+		}
+	};
+	std::cout << "Done..." << std::endl;
+
+	/*glm::vec3 closestAbs = closestRelPosition + shortestVec;
+	if (closestChunk != NULL) {
+		this->SpawnPosition = closestPack->absPosition + closestAbs.x * closestPack->relativeAxisX + closestAbs.y * closestPack->relativeAxisZ + closestAbs.z * closestPack->relativeAxisZ;
+	}*/
 }

@@ -3,13 +3,12 @@
 #include "entities/Entity.h"
 #include <math.h>
 #include <iostream>
-#include "ChunkPack.h"
-
-const double PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679821480865132823066470938446095505822317253594081284811174502;
 
 class MathHelper {
 
 public:
+	static const double PI;
+	
 	static double getVectorLength(glm::vec3 vector);
 	//static glm::vec3 getEntityMovement(Object * ent);
 	static glm::vec3 getVectorDirection(glm::vec3 disp);
@@ -25,4 +24,6 @@ public:
 	static glm::vec3 rotatePointArroundAxis(glm::vec3 point, glm::vec3 axis, double angle);
 	static std::pair<double, double> getAnglesFromAim(glm::vec3 viewAxis);
 	static double findRoll(glm::vec3 axisUp, glm::vec3 axisFront);
+	static bool isInsideParalelogram(glm::vec3 point, glm::vec3 parStart, glm::vec3 parEnd);
+	static glm::vec3 findVectorPointToParalelogram(glm::vec3 point, glm::vec3 polStart, glm::vec3 polEnd);
 };
